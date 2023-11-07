@@ -11,7 +11,7 @@ import (
 
 type Torrent struct {
 	announceUrl  string
-	info         TorrentInfo
+	info         torrentInfo
 	creationDate int64
 	title        string
 	comment      string
@@ -21,16 +21,16 @@ type Torrent struct {
 
 // files and length are mutually exclusive, only one can be used!
 
-type TorrentInfo struct {
+type torrentInfo struct {
 	name        string
 	pieceLength int64
 	pieces      string
 	collections []string
-	files       []TorrentFileInfo
+	files       []torrentFileInfo
 	length      int64
 }
 
-type TorrentFileInfo struct {
+type torrentFileInfo struct {
 	crc32  string
 	length int64
 	md5    string
@@ -40,7 +40,7 @@ type TorrentFileInfo struct {
 }
 
 /*
-func new(announceUrl string, info TorrentInfo, creationDate int, title string, comment string,
+func new(announceUrl string, info torrentInfo, creationDate int, title string, comment string,
 	urlList []string, announceList []string) (Torrent, error) {
 
 	t := Torrent{announceUrl: announceUrl, info: info, creationDate: creationDate, title: title, comment: comment,
@@ -62,7 +62,7 @@ func new(announceUrl string, info TorrentInfo, creationDate int, title string, c
 }
 */
 
-func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
+func loadtorrentInfo(info map[string]interface{}) torrentInfo {
 	// convert collections from an interface slice to a string slice
 	interfaceSliceCollections := info["collections"].([]interface{})
 	collections := make([]string, len(interfaceSliceCollections), len(interfaceSliceCollections))
@@ -74,9 +74,9 @@ func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
 	_, ok := info["files"]
 	if ok {
 
-		// convert files from []interface{} to TorrentInfoFile struct
+		// convert files from []interface{} to torrentInfoFile struct
 		infoMapSlice := info["files"].([]interface{})
-		infoFileSlice := make([]TorrentFileInfo, len(infoMapSlice), len(infoMapSlice))
+		infoFileSlice := make([]torrentFileInfo, len(infoMapSlice), len(infoMapSlice))
 		for i, infoInterface := range infoMapSlice {
 			infoFile := infoInterface.(map[string]interface{})
 
@@ -87,7 +87,7 @@ func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
 				infoFilePaths[i] = path.(string)
 			}
 
-			newFile := TorrentFileInfo{
+			newFile := torrentFileInfo{
 				crc32:  infoFile["crc32"].(string),
 				length: infoFile["length"].(int64),
 				md5:    infoFile["md5"].(string),
@@ -98,7 +98,7 @@ func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
 			infoFileSlice[i] = newFile
 		}
 
-		t := TorrentInfo{
+		t := torrentInfo{
 			name:        info["name"].(string),
 			pieceLength: info["piece length"].(int64),
 			pieces:      info["pieces"].(string),
@@ -107,7 +107,7 @@ func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
 		}
 		return t
 	}
-	t := TorrentInfo{
+	t := torrentInfo{
 		name:        info["name"].(string),
 		pieceLength: info["piece length"].(int64),
 		pieces:      info["pieces"].(string),
@@ -117,7 +117,7 @@ func loadTorrentInfo(info map[string]interface{}) TorrentInfo {
 	return t
 }
 
-func loadTorrentData(torrentPath string) Torrent {
+func LoadTorrentData(torrentPath string) Torrent {
 	reader, err := os.Open(torrentPath)
 	defer reader.Close()
 	if err != nil {
@@ -151,7 +151,7 @@ func loadTorrentData(torrentPath string) Torrent {
 	// convert all values from default interface to their supposed values (string, map, etc.)
 	/*
 		announceUrl := torrentData["announce"].(string)
-		info := loadTorrentInfo(torrentData["info"].(map[string]interface{}))
+		info := loadtorrentInfo(torrentData["info"].(map[string]interface{}))
 		creationDate := torrentData["creation date"].(int64)
 		title := torrentData["title"].(string)
 		comment := torrentData["comment"].(string)
@@ -161,7 +161,7 @@ func loadTorrentData(torrentPath string) Torrent {
 	//fmt.Println(announceUrl, info, creationDate, title, comment, urlList, announceList)
 	t := Torrent{
 		announceUrl:  torrentData["announce"].(string),
-		info:         loadTorrentInfo(torrentData["info"].(map[string]interface{})),
+		info:         loadtorrentInfo(torrentData["info"].(map[string]interface{})),
 		creationDate: torrentData["creation date"].(int64),
 		title:        torrentData["title"].(string),
 		comment:      torrentData["comment"].(string),
@@ -172,6 +172,6 @@ func loadTorrentData(torrentPath string) Torrent {
 }
 
 func main() {
-	t := loadTorrentData("D:\\Coding\\GoProjects\\Torrent\\Parser\\torrent.torrent")
+	t := LoadTorrentData("D:\\Coding\\GoProjects\\Torrent\\Parser\\torrent.torrent")
 	fmt.Println(t.announceUrl, t.info)
 }
