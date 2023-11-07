@@ -1,6 +1,7 @@
-package main // tobe Parser
+package Parser // tobe Parser
 
 import (
+	"errors"
 	"fmt"
 	"github.com/zeebo/bencode"
 	"os"
@@ -169,6 +170,13 @@ func LoadTorrentData(torrentPath string) Torrent {
 		announceList: announceListSlice,
 	}
 	return t
+}
+
+func GetTrackerUrl(torrent Torrent) (string, error) {
+	if torrent.announceUrl == "" {
+		return "", errors.New("No announce url!")
+	}
+	return torrent.announceUrl, nil
 }
 
 func main() {
