@@ -1,6 +1,7 @@
-package main // tobe Parser
+package Parser
 
 import (
+	"errors"
 	"fmt"
 	"github.com/zeebo/bencode"
 	"os"
@@ -39,30 +40,7 @@ type torrentFileInfo struct {
 	sha1   string
 }
 
-/*
-func new(announceUrl string, info torrentInfo, creationDate int, title string, comment string,
-	urlList []string, announceList []string) (Torrent, error) {
-
-	t := Torrent{announceUrl: announceUrl, info: info, creationDate: creationDate, title: title, comment: comment,
-		urlList: urlList, announceList: announceList}
-
-	if announceUrl == "" && info == nil {
-		return t, errors.New("missing announceURL and info")
-	}
-
-	if announceUrl == "" {
-		return t, errors.New("missing announceURL")
-	}
-
-	if info == nil {
-		return t, errors.New("missing info")
-	}
-
-	return t, nil
-}
-*/
-
-func loadtorrentInfo(info map[string]interface{}) torrentInfo {
+func loadtorrentInfo(info map[string]interface{}) (*torrentInfo, error) {
 	// convert collections from an interface slice to a string slice
 	interfaceSliceCollections := info["collections"].([]interface{})
 	collections := make([]string, len(interfaceSliceCollections), len(interfaceSliceCollections))
@@ -105,30 +83,34 @@ func loadtorrentInfo(info map[string]interface{}) torrentInfo {
 			collections: collections,
 			files:       infoFileSlice,
 		}
-		return t
+		return &t, nil
 	}
-	t := torrentInfo{
-		name:        info["name"].(string),
-		pieceLength: info["piece length"].(int64),
-		pieces:      info["pieces"].(string),
-		collections: collections,
-		length:      info["length"].(int64),
+	_, length := info["length"]
+	if length {
+		t := torrentInfo{
+			name:        info["name"].(string),
+			pieceLength: info["piece length"].(int64),
+			pieces:      info["pieces"].(string),
+			collections: collections,
+			length:      info["length"].(int64),
+		}
+		return &t, nil
 	}
-	return t
+	return nil, errors.New("torrent has neither files key nor length key")
 }
 
-func LoadTorrentData(torrentPath string) Torrent {
+func LoadTorrentData(torrentPath string) (*Torrent, error) {
 	reader, err := os.Open(torrentPath)
 	defer reader.Close()
 	if err != nil {
-		fmt.Printf("err is: %s\n", err)
+		return nil, err
 	}
 
 	var bencodedtorrentData interface{}
 	decoder := bencode.NewDecoder(reader)
 	err = decoder.Decode(&bencodedtorrentData)
 	if err != nil {
-		fmt.Printf("err2 is: %s\n", err)
+		return nil, err
 	}
 	torrentData := bencodedtorrentData.(map[string]interface{})
 
@@ -147,31 +129,35 @@ func LoadTorrentData(torrentPath string) Torrent {
 			announceListSlice[i] = path.(string)
 		}
 	}
+	// create torrentInfo object
+	info, err := loadtorrentInfo(torrentData["info"].(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
 
-	// convert all values from default interface to their supposed values (string, map, etc.)
-	/*
-		announceUrl := torrentData["announce"].(string)
-		info := loadtorrentInfo(torrentData["info"].(map[string]interface{}))
-		creationDate := torrentData["creation date"].(int64)
-		title := torrentData["title"].(string)
-		comment := torrentData["comment"].(string)
-		urlList := urlListSlice
-		announceList := announceListSlice
-	*/
-	//fmt.Println(announceUrl, info, creationDate, title, comment, urlList, announceList)
 	t := Torrent{
 		announceUrl:  torrentData["announce"].(string),
-		info:         loadtorrentInfo(torrentData["info"].(map[string]interface{})),
+		info:         *info,
 		creationDate: torrentData["creation date"].(int64),
 		title:        torrentData["title"].(string),
 		comment:      torrentData["comment"].(string),
 		urlList:      urlListSlice,
 		announceList: announceListSlice,
 	}
-	return t
+	return &t, nil
+}
+
+func GetTrackerUrl(torrent Torrent) (string, error) {
+	if torrent.announceUrl == "" {
+		return "", errors.New("No announce url!")
+	}
+	return torrent.announceUrl, nil
 }
 
 func main() {
-	t := LoadTorrentData("D:\\Coding\\GoProjects\\Torrent\\Parser\\torrent.torrent")
+	t, err := LoadTorrentData("D:\\Coding\\GoProjects\\Torrent\\Parser\\torrent.torrent")
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(t.announceUrl, t.info)
 }
